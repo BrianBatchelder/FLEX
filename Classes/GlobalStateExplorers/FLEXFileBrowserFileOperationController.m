@@ -136,3 +136,85 @@
 }
 
 @end
+
+@interface FLEXFileBrowserFileEmailOperationController ()
+
+@property (nonatomic, copy, readonly) NSString *path;
+
+@end
+
+@implementation FLEXFileBrowserFileEmailOperationController
+
+@synthesize delegate = _delegate;
+
+- (instancetype)init
+{
+    return [self initWithPath:nil];
+}
+
+- (instancetype)initWithPath:(NSString *)path
+{
+    self = [super init];
+    if (self) {
+        _path = path;
+    }
+    
+    return self;
+}
+
+- (void)show
+{
+    BOOL isDirectory = NO;
+    BOOL stillExists = [[NSFileManager defaultManager] fileExistsAtPath:self.path isDirectory:&isDirectory];
+    
+    if (stillExists) {
+        NSArray *to = [[NSBundle mainBundle] objectForInfoDictionaryKey:kFLEXEmailRecipientsKey];
+        
+        if (to && ([to count] > 0)) {
+            NSString *appName = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleName"];
+            NSString *subject = [NSString stringWithFormat:@"%@.FLEX: File: %@",appName,[self.path lastPathComponent]];
+            NSString *body = [NSString stringWithFormat:@"The FLEX debugging tool within the app \"%@\" sent you the file named %@ at %@.\n",appName,self.path,[self getDateTimeStamp]];
+            
+            // create the MFMailComposeViewController
+            MFMailComposeViewController *composer = [[MFMailComposeViewController alloc] init];
+            composer.mailComposeDelegate = self;
+            
+            // set standard fields
+            [composer setSubject:subject];
+            [composer setMessageBody:body isHTML:NO];
+            [composer setToRecipients:to];
+            
+            // add attachment
+            NSData *fileData = [[NSFileHandle fileHandleForReadingAtPath:self.path] availableData];
+            [composer addAttachmentData:fileData mimeType:@"application/octet-stream" fileName:[self.path lastPathComponent]];
+            
+            // present it on the screen - user just needs to press "Send"
+            [(UIViewController *)self.delegate presentViewController:composer animated:YES completion:NULL];
+        }
+    } else {
+        [[[UIAlertView alloc] initWithTitle:@"File Removed" message:@"The file at the specified path no longer exists." delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil] show];
+    }
+}
+
+#pragma mark - MFMailComposeViewControllerDelegate methods
+- (void) mailComposeController:(MFMailComposeViewController *)controller didFinishWithResult:(MFMailComposeResult)result error:(NSError *)error {
+    // close the Mail Interface
+    [(UIViewController *)self.delegate dismissViewControllerAnimated:YES completion:NULL];
+}
+
+static NSDateFormatter *dateFormatter = nil;
+
+- (NSString *)getDateTimeStamp
+{
+    if (dateFormatter == nil) {
+        dateFormatter = [[NSDateFormatter alloc] init];
+        dateFormatter.dateFormat = @"yyyy-MM-dd HH:mm:ss zzz";
+    }
+    
+    NSDate *now = [NSDate date];
+    
+    return [dateFormatter stringFromDate:now];
+}
+
+@end
+
