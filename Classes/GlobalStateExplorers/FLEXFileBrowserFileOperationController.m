@@ -145,6 +145,8 @@
 
 @property (nonatomic, copy, readonly) NSString *path;
 
+- (instancetype)initWithPath:(NSString *)path NS_DESIGNATED_INITIALIZER;
+
 @end
 
 @implementation FLEXFileBrowserFileEmailOperationController
