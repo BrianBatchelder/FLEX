@@ -97,7 +97,15 @@
 
     UIMenuItem *renameMenuItem = [[UIMenuItem alloc] initWithTitle:@"Rename" action:@selector(fileBrowserRename:)];
     UIMenuItem *deleteMenuItem = [[UIMenuItem alloc] initWithTitle:@"Delete" action:@selector(fileBrowserDelete:)];
-    [UIMenuController sharedMenuController].menuItems = @[renameMenuItem, deleteMenuItem];
+    NSMutableArray *menuItems = [NSMutableArray arrayWithObjects:renameMenuItem, deleteMenuItem, nil];
+    
+    NSArray *to = [[NSBundle mainBundle] objectForInfoDictionaryKey:kFLEXEmailRecipientsKey];
+    if (to && ([to count] > 0)) {
+        UIMenuItem *emailMenuItem = [[UIMenuItem alloc] initWithTitle:@"Email" action:@selector(fileBrowserEmail:)];
+        [menuItems addObject:emailMenuItem];
+    }
+    
+    [UIMenuController sharedMenuController].menuItems = menuItems;
 }
 
 #pragma mark - FLEXFileBrowserSearchOperationDelegate
@@ -281,7 +289,7 @@
 
 - (BOOL)tableView:(UITableView *)tableView canPerformAction:(SEL)action forRowAtIndexPath:(NSIndexPath *)indexPath withSender:(id)sender
 {
-    return action == @selector(fileBrowserDelete:) || action == @selector(fileBrowserRename:);
+    return action == @selector(fileBrowserDelete:) || action == @selector(fileBrowserRename:) || action == @selector(fileBrowserEmail:);
 }
 
 - (void)tableView:(UITableView *)tableView performAction:(SEL)action forRowAtIndexPath:(NSIndexPath *)indexPath withSender:(id)sender
@@ -343,6 +351,25 @@
     [self.fileOperationController show];
 }
 
+- (void)fileBrowserEmail:(UITableViewCell *)sender
+{
+    NSString *fullPath = nil;
+    
+    NSIndexPath *indexPath = [self.tableView indexPathForCell:sender];
+    if (indexPath) {
+        NSString *subpath = [self.childPaths objectAtIndex:indexPath.row];
+        fullPath = [self.path stringByAppendingPathComponent:subpath];
+    } else {
+        indexPath = [self.searchController.searchResultsTableView indexPathForCell:sender];
+        fullPath = [self.searchPaths objectAtIndex:indexPath.row];
+    }
+    
+    self.fileOperationController = [[FLEXFileBrowserFileEmailOperationController alloc] initWithPath:fullPath];
+    self.fileOperationController.delegate = self;
+    [self.fileOperationController show];
+}
+
+
 - (void)reloadDisplayedPaths
 {
     if (self.searchController.isActive) {
@@ -383,6 +410,12 @@
 }
 
 - (void)fileBrowserDelete:(UIMenuController *)sender
+{
+    id target = [self.nextResponder targetForAction:_cmd withSender:sender];
+    [[UIApplication sharedApplication] sendAction:_cmd to:target from:self forEvent:nil];
+}
+
+- (void)fileBrowserEmail:(UIMenuController *)sender
 {
     id target = [self.nextResponder targetForAction:_cmd withSender:sender];
     [[UIApplication sharedApplication] sendAction:_cmd to:target from:self forEvent:nil];

@@ -7,6 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
+@import MessageUI;
 
 @protocol FLEXFileBrowserFileOperationController;
 
@@ -30,4 +31,9 @@
 @end
 
 @interface FLEXFileBrowserFileRenameOperationController : NSObject <FLEXFileBrowserFileOperationController>
+@end
+
+#define kFLEXEmailRecipientsKey @"FLEXEmailRecipients"
+
+@interface FLEXFileBrowserFileEmailOperationController : NSObject <FLEXFileBrowserFileOperationController, MFMailComposeViewControllerDelegate>
 @end
